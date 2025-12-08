@@ -58,7 +58,7 @@ model = UNet(
 )
 
 # Define diffusion process
-diffusion = GaussianDiffusion(
+diffusion = Diffusion(
     model,
     image_size=256,
     timesteps=1000,
