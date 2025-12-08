@@ -22,6 +22,8 @@ Supports multiple beta schedules, flexible loss functions (MSE or L1), attention
 
 ## 📦 Installation
 
+You can access the [PyPI page](https://pypi.org/project/diffusion-pytorch-lib/) or install the package directly.
+
 ```bash
 pip install diffusion-pytorch-lib
 

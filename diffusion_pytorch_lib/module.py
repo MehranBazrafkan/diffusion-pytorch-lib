@@ -236,13 +236,12 @@ class SinusoidalPosEmb(Module):
         emb = torch.cat((emb.sin(), emb.cos()), dim=-1)
         return emb
 
-class DownStage(Module):
-    def __init__(self, in_dim, out_dim, dropout, time_emb_dim):
+class StageBlock(Module):
+    def __init__(self, in_dim, dropout, time_emb_dim):
         super().__init__()
         self.res_block1 = ResnetBlock(in_dim, in_dim, dropout=dropout, time_emb_dim=time_emb_dim)
-        self.attn = LinearAttention(in_dim)
         self.res_block2 = ResnetBlock(in_dim, in_dim, dropout=dropout, time_emb_dim=time_emb_dim)
-        self.downsample = Downsample(in_dim, out_dim)
+        self.attn = LinearAttention(in_dim)
 
     def forward(
             self, 
@@ -253,29 +252,7 @@ class DownStage(Module):
 
         z = self.res_block2(z, t)
         z = self.attn(z) + z
-
-        z = self.downsample(z)
-        return z
-
-class UpStage(Module):
-    def __init__(self, in_dim, out_dim, dropout, time_emb_dim):
-        super().__init__()
-        self.res_block1 = ResnetBlock(in_dim, in_dim, dropout=dropout, time_emb_dim=time_emb_dim)
-        self.res_block2 = ResnetBlock(in_dim, in_dim, dropout=dropout, time_emb_dim=time_emb_dim)
-        self.attn = LinearAttention(in_dim)
-        self.upsample = Upsample(in_dim, out_dim)
-
-    def forward(
-            self, 
-            x: torch.Tensor, 
-            t: torch.Tensor,
-        ) -> torch.Tensor:
-        z = self.res_block1(x, t)
-
-        z = self.res_block2(z, t)
-        z = self.attn(z) + z
-
-        z = self.upsample(z)
+        
         return z
 
 class UNet(Module):
@@ -317,9 +294,13 @@ class UNet(Module):
         # ----- Encoder ----- #
         self.down_stages = ModuleList([])
         for i, (stage_in_dim, stage_out_dim) in enumerate(down_stages_in_out_dims):
-            self.down_stages.append(
-                DownStage(stage_in_dim, stage_out_dim, dropout=dropout, time_emb_dim=time_dim)
-            )
+            blocks = ModuleList()
+            blocks.append(StageBlock(stage_in_dim, dropout=dropout, time_emb_dim=time_dim))
+            
+            if stage_in_dim != stage_out_dim:
+                blocks.append(Downsample(stage_in_dim, stage_out_dim))
+            
+            self.down_stages.append(nn.Sequential(*blocks))
         # ----- Encoder ----- #
 
         self.mid_block1 = ResnetBlock(mid_dim, mid_dim)
@@ -329,9 +310,13 @@ class UNet(Module):
         # ----- Decoder ----- #
         self.up_stages = ModuleList([])
         for i, (stage_in_dim, stage_out_dim) in enumerate(up_stages_in_out_dims):
-            self.up_stages.append(
-                UpStage(stage_in_dim, stage_out_dim, dropout=dropout, time_emb_dim=time_dim)
-            )
+            blocks = ModuleList()
+            blocks.append(StageBlock(stage_in_dim, dropout=dropout, time_emb_dim=time_dim))
+            
+            if stage_in_dim != stage_out_dim:
+                blocks.append(Upsample(stage_in_dim, stage_out_dim))
+            
+            self.down_stages.append(nn.Sequential(*blocks))
         # ----- Decoder ----- #
 
         self.final_res_block = ResnetBlock(dim * 2, dim, dropout=dropout, time_emb_dim=time_dim)
