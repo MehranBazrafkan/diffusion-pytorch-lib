@@ -1,6 +1,6 @@
 [project]
 name = "diffusion-pytorch-lib"
-version = "1.0.1"
+version = "1.0.2"
 description = "A flexible PyTorch implementation of a UNet-based Denoising Diffusion Probabilistic Model (DDPM) with customizable architecture and training options."
 readme = "README.md"
 requires-python = ">=3.10"
