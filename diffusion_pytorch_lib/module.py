@@ -297,7 +297,7 @@ class UNet(Module):
             blocks = ModuleList()
             blocks.append(StageBlock(stage_in_dim, dropout=dropout, time_emb_dim=time_dim))
             
-            if stage_in_dim != stage_out_dim:
+            if stage_in_dim != stage_out_dim or len(self.down_stages) == 0:
                 blocks.append(Downsample(stage_in_dim, stage_out_dim))
             
             self.down_stages.append(nn.Sequential(*blocks))
@@ -313,7 +313,7 @@ class UNet(Module):
             blocks = ModuleList()
             blocks.append(StageBlock(stage_in_dim, dropout=dropout, time_emb_dim=time_dim))
             
-            if stage_in_dim != stage_out_dim:
+            if stage_in_dim != stage_out_dim or len(self.up_stages) == len(dim_mults) - 1:
                 blocks.append(Upsample(stage_in_dim, stage_out_dim))
             
             self.down_stages.append(nn.Sequential(*blocks))
